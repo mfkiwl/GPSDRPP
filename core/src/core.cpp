@@ -30,9 +30,6 @@
 #define INSTALL_PREFIX "/usr"
 #endif
 
-const char* GPIO_CHIP_2 = "/dev/gpiochip2";
-const char* GPIO_CHIP_4 = "/dev/gpiochip4";
-
 namespace core {
     
     VUGPSDR_Initializer g_vugpsdr_initializer;
@@ -40,9 +37,9 @@ namespace core {
         
         // turn on the device
         flog::info("VU GPSDR power on");
-    	system("vgp alt 4B2 0");
-    	system("vgp mode 4B2 OUT");
-    	system("vgp set 4B2 0");
+        system(CORE_CMD_POWER_ALT_0);
+        system(CORE_CMD_POWER_MODE_OUT);
+        system(CORE_CMD_POWER_SET_LOW);
 		
     	// make sure user can access I2C device
     	flog::info("Check permissions for accessing I2C device...");
@@ -393,21 +390,21 @@ int gpsdrpp_main(int argc, char* argv[]) {
 	// Initialize encoders
     LoadingScreen::show("Initializing encoders");
     flog::info("Initializing encoders");
-	system("vgp alt 2B2 0");
-	system("vgp alt 2D3 0");
-	system("vgp alt 2A4 0");
-	system("vgp alt 4B0 0");
-	system("vgp alt 4B3 0");
-	system("vgp alt 4B5 0");	
-	
-    Encoder encoderA(GPIO_CHIP_4, 8, GPIO_CHIP_4, 11, GPIO_CHIP_4, 13);
+    system(CORE_CMD_ENCODER_AA_ALT_0);
+    system(CORE_CMD_ENCODER_AB_ALT_0);
+    system(CORE_CMD_ENCODER_AC_ALT_0);
+    system(CORE_CMD_ENCODER_BA_ALT_0);
+    system(CORE_CMD_ENCODER_BB_ALT_0);
+    system(CORE_CMD_ENCODER_BC_ALT_0);
+
+    Encoder encoderA(CORE_PIN_ENCODER_AA, CORE_PIN_ENCODER_AB, CORE_PIN_ENCODER_AC);
     encoderA.setCWCallback(core::encoders::on_encoder_a_cw);
     encoderA.setCCWCallback(core::encoders::on_encoder_a_ccw);
     encoderA.setPressedCallback(core::encoders::on_encoder_a_pressed);
     encoderA.setReleasedCallback(core::encoders::on_encoder_a_released);
     encoderA.start();
 
-    Encoder encoderB(GPIO_CHIP_2, 10, GPIO_CHIP_2, 27, GPIO_CHIP_2, 4);
+    Encoder encoderB(CORE_PIN_ENCODER_BA, CORE_PIN_ENCODER_BB, CORE_PIN_ENCODER_BC);
     encoderB.setCWCallback(core::encoders::on_encoder_b_cw);
     encoderB.setCCWCallback(core::encoders::on_encoder_b_ccw);
     encoderB.setPressedCallback(core::encoders::on_encoder_b_pressed);

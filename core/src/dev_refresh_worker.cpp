@@ -10,7 +10,6 @@
 #include <rtl_sdr_source_interface.h>
 #include <utils/flog.h>
 
-
 bool DeviceRefreshWorker::checkI2CDevice(int bus, int address) {
     char filename[20];
     snprintf(filename, sizeof(filename), "/dev/i2c-%d", bus);
@@ -45,11 +44,11 @@ void DeviceRefreshWorker::workerLoop() {
 				if (count == 0) {
 					if (checkI2CDevice(2, 0x0b)) {
 					    flog::info("VU GPSDR device found on I2C bus 2, make a power cycle now...");
-						
-						executeCommand("vgp set 4B2 1");
+
+						executeCommand(CORE_CMD_POWER_SET_HIGH);
 						delay(2000);
 						
-						executeCommand("vgp set 4B2 0");
+						executeCommand(CORE_CMD_POWER_SET_LOW);
 						delay(500);
 						
                         // Tell GPS to output 24MHz

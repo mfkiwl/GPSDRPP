@@ -1,14 +1,82 @@
-#!/bin/bash
-if cat /sys/firmware/devicetree/base/model | grep -iqE 'rk3399.*vivid' || dmesg | grep -iqE 'vivid.*rk3399'; then
-  GLX_INFO_OUTPUT=$(glxinfo -B 2>&1)
-  if ! echo "$GLX_INFO_OUTPUT" | grep -q "Mali T860"; then
-    SCRIPT_URL="https://github.com/uugear/vu_install/raw/main/enable_gpu.sh"
-	echo '==========================================================================='
-    echo 'GPSDR++ has been installed.'
-    echo 'It seems your Vivid Unit has not enabled its GPU yet.'
-    echo 'It is recommended to do so because GPSDR++ needs the GPU for faster rendering.'
-    echo 'The CPU usage will be very high when running GPSDR++ without enabling GPU.'
-	echo "You may download and run $SCRIPT_URL to enable GPU."
-	echo '==========================================================================='
-  fi
-fi
+#!/bin/sh
+set -e
+
+OLD_MODULES_DIR="/usr/local/lib/gpsdrpp/plugins"
+NEW_MODULES_DIR="/usr/lib/gpsdrpp/plugins"
+OLD_RESOURCES_DIR="/usr/local/share/gpsdrpp"
+NEW_RESOURCES_DIR="/usr/share/gpsdrpp"
+
+migrate_config_file() {
+    cfg="$1"
+
+    [ -f "$cfg" ] || return 0
+    [ -d "$NEW_MODULES_DIR" ] || return 0
+    [ -d "$NEW_RESOURCES_DIR" ] || return 0
+
+    if ! grep -qE '/usr/local/(lib/gpsdrpp/plugins|share/gpsdrpp)' "$cfg"; then
+        return 0
+    fi
+
+    tmp="$(mktemp "${cfg}.tmp.XXXXXX")"
+    sed \
+        -e "s#\"modulesDirectory\"[[:space:]]*:[[:space:]]*\"$OLD_MODULES_DIR\"#\"modulesDirectory\": \"$NEW_MODULES_DIR\"#g" \
+        -e "s#\"resourcesDirectory\"[[:space:]]*:[[:space:]]*\"$OLD_RESOURCES_DIR\"#\"resourcesDirectory\": \"$NEW_RESOURCES_DIR\"#g" \
+        "$cfg" > "$tmp"
+
+    if cmp -s "$cfg" "$tmp"; then
+        rm -f "$tmp"
+        return 0
+    fi
+
+    uid="$(stat -c '%u' "$cfg")"
+    gid="$(stat -c '%g' "$cfg")"
+    mode="$(stat -c '%a' "$cfg")"
+
+    chown "$uid:$gid" "$tmp"
+    chmod "$mode" "$tmp"
+    mv -f "$tmp" "$cfg"
+
+    echo "Migrated GPSDR++ config paths in $cfg"
+}
+
+migrate_user_configs() {
+    if command -v getent >/dev/null 2>&1; then
+        getent passwd | while IFS=: read -r _ _ uid _ _ home _; do
+            case "$uid" in
+                ''|*[!0-9]*) continue ;;
+            esac
+
+            if [ "$uid" -eq 0 ] || [ "$uid" -ge 1000 ]; then
+                [ -n "$home" ] || continue
+                [ -d "$home/.config/gpsdrpp" ] || continue
+                migrate_config_file "$home/.config/gpsdrpp/config.json"
+            fi
+        done
+    else
+        migrate_config_file "/root/.config/gpsdrpp/config.json"
+        for home in /home/*; do
+            [ -d "$home" ] || continue
+            migrate_config_file "$home/.config/gpsdrpp/config.json"
+        done
+    fi
+}
+
+show_gpu_hint_if_needed() {
+    GLX_INFO_OUTPUT="$(glxinfo -B 2>&1 || true)"
+    if ! printf '%s\n' "$GLX_INFO_OUTPUT" | grep -q 'Mali'; then
+        echo '==========================================================================='
+        echo 'GPSDR++ has been installed.'
+        echo 'GPSDR++ needs GPU acceleration for faster rendering.'
+        echo 'If your system does not have GPU acceleration enabled, CPU usage may be high.'
+        echo '==========================================================================='
+    fi
+}
+
+case "${1:-configure}" in
+    configure|reconfigure)
+        migrate_user_configs
+        show_gpu_hint_if_needed
+        ;;
+esac
+
+exit 0

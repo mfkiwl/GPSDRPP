@@ -61,6 +61,7 @@ pkg_check_modules(FFTW3 REQUIRED fftw3f)
 pkg_check_modules(VOLK REQUIRED volk)
 pkg_check_modules(GLFW3 REQUIRED glfw3)
 pkg_check_modules(LIBZSTD REQUIRED libzstd)
+pkg_check_modules(GPIOD REQUIRED libgpiod)
 
 target_include_directories(gpsdrpp_core PUBLIC
     ${OPENGL_INCLUDE_DIRS}
@@ -68,6 +69,7 @@ target_include_directories(gpsdrpp_core PUBLIC
     ${GLFW3_INCLUDE_DIRS}
     ${VOLK_INCLUDE_DIRS}
     ${LIBZSTD_INCLUDE_DIRS}
+    ${GPIOD_INCLUDE_DIRS}
 )
 
 target_link_directories(gpsdrpp_core PUBLIC
@@ -76,6 +78,7 @@ target_link_directories(gpsdrpp_core PUBLIC
     ${GLFW3_LIBRARY_DIRS}
     ${VOLK_LIBRARY_DIRS}
     ${LIBZSTD_LIBRARY_DIRS}
+    ${GPIOD_LIBRARY_DIRS}
 )
 
 target_link_libraries(gpsdrpp_core PUBLIC
@@ -84,6 +87,7 @@ target_link_libraries(gpsdrpp_core PUBLIC
     ${GLFW3_LIBRARIES}
     ${VOLK_LIBRARIES}
     ${LIBZSTD_LIBRARIES}
+    ${GPIOD_LIBRARIES}
 )
 
 if (NOT USE_INTERNAL_LIBCORRECT)
